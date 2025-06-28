@@ -1,0 +1,1 @@
+In telecom, customer churn is influenced by tenure, billing method, support calls, and contract type. Features like 7-day rolling avg usage, payment delay ratio, and average data per month often help in prediction.
