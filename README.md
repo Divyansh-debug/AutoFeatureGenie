@@ -134,7 +134,9 @@ This project provides a comprehensive suite of tools for exploratory data analys
 
 ## 📸 Screenshots
 
-**[Screenshot of the frontend interface with EDA summary and feature suggestions]**
+<img width="1919" height="1017" alt="Screenshot 2025-07-16 161716" src="https://github.com/user-attachments/assets/0d8d3d60-693a-463e-99b2-e7f8a2bc22dc" />
+<img width="1919" height="1007" alt="Screenshot 2025-07-16 161735" src="https://github.com/user-attachments/assets/d0a97c95-3629-416b-8352-d17a877a1835" />
+<img width="1919" height="1000" alt="Screenshot 2025-07-16 161752" src="https://github.com/user-attachments/assets/ae9bd529-b794-4835-83b1-f0140cd7f15e" />
 
 ---
 
