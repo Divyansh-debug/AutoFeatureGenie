@@ -152,7 +152,7 @@ This project is licensed under the MIT License. See the LICENSE file for details
 
 ## 📬 Contact
 
-For questions, suggestions, or feedback, please contact the maintainers at [your-email@example.com](mailto:your-email@example.com).
+For questions, suggestions, or feedback, please contact the maintainers at [agarwaldivyansh4002@gmail.com](mailto:agarwaldivyansh4002@gmail.com).
 
 ---
 
