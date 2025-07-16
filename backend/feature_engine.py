@@ -3,32 +3,40 @@ import os
 import json
 import google.generativeai as genai
 from dotenv import load_dotenv
+
 from backend.prompts import feature_prompt_template
+from backend.rag_engine import RAGEngine
 
 # Load Gemini API key
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = genai.GenerativeModel("gemini-1.5-flash")
+
+# Initialize RAG engine (assumes vectorstore.pkl already exists)
+rag = RAGEngine("domain_docs")
+rag.load_index()
 
 def generate_eda_summary(df: pd.DataFrame) -> dict:
-    summary = {}
-    summary["shape"] = df.shape
-    summary["columns"] = list(df.columns)
+    summary = {
+        "shape": df.shape,
+        "columns": list(df.columns),
+        "column_info": {}
+    }
 
-    column_info = {}
     for col in df.columns:
-        column_info[col] = {
+        info = {
             "dtype": str(df[col].dtype),
             "missing_values": int(df[col].isnull().sum()),
             "unique_values": int(df[col].nunique()),
         }
 
         if pd.api.types.is_numeric_dtype(df[col]):
-            column_info[col]["mean"] = float(df[col].mean())
-            column_info[col]["std"] = float(df[col].std())
-            column_info[col]["min"] = float(df[col].min())
-            column_info[col]["max"] = float(df[col].max())
+            info["mean"] = float(df[col].mean())
+            info["std"] = float(df[col].std())
+            info["min"] = float(df[col].min())
+            info["max"] = float(df[col].max())
 
-    summary["column_info"] = column_info
+        summary["column_info"][col] = info
 
     likely_targets = [col for col in df.columns if 'target' in col.lower() or 'churn' in col.lower()]
     summary["likely_target_column"] = likely_targets[0] if likely_targets else None
@@ -39,39 +47,32 @@ def generate_eda_summary(df: pd.DataFrame) -> dict:
 def suggest_features(file_path, domain="telecom"):
     df = pd.read_csv(file_path)
     df_sample = df.head(5).to_csv(index=False)
+    columns = df.columns.tolist()
 
-    # Prepare prompt using sample + columns + domain
-    prompt = feature_prompt_template(df_sample, df.columns.tolist(), domain=domain)
+    # 🔥 Inject domain knowledge via RAG
+    context_chunks = rag.search(f"feature engineering for {domain}")
+    context = "\n\n".join(context_chunks)
+
+    # ✅ Prepare prompt with domain context
+    prompt = feature_prompt_template(df_sample, columns, context, domain)
 
     try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
         response = model.generate_content(prompt)
-        text = response.text
-        
-        # Debug: Print the response for troubleshooting
-        print(f"Gemini Response: {text[:500]}...")  # Print first 500 chars
+        text = response.text.strip()
 
+        # Debug print
+        print("Gemini response preview:\n", text[:500])
+
+        # Try parsing full text
         try:
-            # Try to parse Gemini's response directly
-            suggestions = json.loads(text)
-            return suggestions
-        except json.JSONDecodeError as e:
-            print(f"JSON Parse Error: {e}")
-            # Try to extract JSON from the response if it's wrapped in text
+            return json.loads(text)
+        except json.JSONDecodeError:
+            # Try to extract only the JSON array part
             import re
-            # Look for JSON array pattern
             json_match = re.search(r'\[.*\]', text, re.DOTALL)
             if json_match:
-                try:
-                    suggestions = json.loads(json_match.group())
-                    return suggestions
-                except json.JSONDecodeError:
-                    pass
-            
-            # If all parsing attempts fail, return the raw text
-            return [{
-                "error": "Invalid JSON format in Gemini response",
-                "raw_output": text
-            }]
+                return json.loads(json_match.group())
+            else:
+                return [{"error": "Gemini returned invalid JSON", "raw": text}]
     except Exception as e:
         return [{"error": "Gemini API call failed", "details": str(e)}]

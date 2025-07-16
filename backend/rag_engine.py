@@ -3,7 +3,7 @@ import pickle
 from sentence_transformers import SentenceTransformer
 import faiss
 
-# 1. Use free open source embedding model
+# 1. Load embedding model (MiniLM is fast & good)
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
 class RAGEngine:
@@ -29,17 +29,26 @@ class RAGEngine:
         self.index.add(embeddings)
         self.id_to_text = {i: chunk for i, chunk in enumerate(self.text_chunks)}
 
-        # Save to disk
-        with open("vectorstore.pkl", "wb") as f:
+        save_path = os.path.join("backend", "vectorstore.pkl")
+        with open(save_path, "wb") as f:
             pickle.dump((self.index, self.id_to_text), f)
 
     def load_index(self):
         """Loads the stored FAISS index and id->text map"""
-        with open("vectorstore.pkl", "rb") as f:
+        load_path = os.path.join("backend", "vectorstore.pkl")
+        with open(load_path, "rb") as f:
             self.index, self.id_to_text = pickle.load(f)
 
     def search(self, query: str, top_k: int = 3):
         """Returns top-k most relevant chunks for a query"""
         query_vec = model.encode([query])
         D, I = self.index.search(query_vec, top_k)
-        return [self.id_to_text[i] for i in I[0]]
+        return [self.id_to_text[i] for i in I[0] if i != -1]
+
+
+# ✅ Helper function for LLM prompt context injection
+def fetch_context_from_rag(query: str, top_k: int = 3) -> str:
+    rag = RAGEngine("domain_docs")
+    rag.load_index()
+    results = rag.search(query, top_k=top_k)
+    return "\n\n".join(results)
