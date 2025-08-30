@@ -58,7 +58,7 @@ This project provides a comprehensive suite of tools for exploratory data analys
 
 1. Clone the repository:  
    ```bash
-   git clone [[your-repository-url]](https://github.com/Divyansh-debug/AutoFeatureGenie.git)
+   git clone https://github.com/Divyansh-debug/AutoFeatureGenie.git
    cd AutoFeatureGenie
    ```
 
