@@ -140,20 +140,10 @@ Contributions are welcome! If you'd like to contribute to this project, please f
 
 ## 📝 License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the MIT License.
 
 ---
 
 ## 📬 Contact
 
 For questions, suggestions, or feedback, please contact the maintainers at [agarwaldivyansh4002@gmail.com](mailto:agarwaldivyansh4002@gmail.com).
-
----
-
-## 💖 Thanks Message
-
-A heartfelt thank you to all contributors and users who have supported this project. Special thanks to Google for their Generative AI capabilities, which power the feature suggestion engine.
-
----
-
-This README was generated with ❤️ by readme.ai.
