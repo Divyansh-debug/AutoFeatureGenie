@@ -354,7 +354,7 @@ git push origin feature/your-awesome-feature
 
 | | |
 |--|--|
-| 👨‍💻 **Author** | Divyansh Agrawal |
+| 👨‍💻 **Author** | Divyansh Agarwal |
 | 📧 **Email** | agarwaldivyansh4002@gmail.com |
 | 🔗 **Repository** | [AutoFeatureGenie on GitHub](https://github.com/Divyansh-debug/AutoFeatureGenie) |
 
