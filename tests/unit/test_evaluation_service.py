@@ -1,11 +1,16 @@
 """Unit tests for evaluation_service (Auto-Validator)"""
+
 import os
 import tempfile
 import pytest
 import pandas as pd
 import numpy as np
 
-from src.services.evaluation_service import evaluate_feature, _detect_task, _prepare_features
+from src.services.evaluation_service import (
+    evaluate_feature,
+    _detect_task,
+    _prepare_features,
+)
 
 
 class TestDetectTask:
@@ -50,11 +55,13 @@ class TestEvaluateFeature:
 
     def test_successful_classification(self):
         np.random.seed(42)
-        df = pd.DataFrame({
-            "feature_a": np.random.randn(80),
-            "feature_b": np.random.randn(80),
-            "target": np.random.randint(0, 2, 80),
-        })
+        df = pd.DataFrame(
+            {
+                "feature_a": np.random.randn(80),
+                "feature_b": np.random.randn(80),
+                "target": np.random.randint(0, 2, 80),
+            }
+        )
         path = self._make_csv(df)
         try:
             code = "df['feature_sum'] = df['feature_a'] + df['feature_b']"
@@ -69,11 +76,13 @@ class TestEvaluateFeature:
 
     def test_successful_regression(self):
         np.random.seed(0)
-        df = pd.DataFrame({
-            "x1": np.random.randn(80),
-            "x2": np.random.randn(80),
-            "price": np.random.uniform(10, 1000, 80),
-        })
+        df = pd.DataFrame(
+            {
+                "x1": np.random.randn(80),
+                "x2": np.random.randn(80),
+                "price": np.random.uniform(10, 1000, 80),
+            }
+        )
         path = self._make_csv(df)
         try:
             code = "df['x_ratio'] = df['x1'] / (df['x2'].abs() + 1e-9)"
@@ -95,10 +104,12 @@ class TestEvaluateFeature:
 
     def test_broken_code_snippet(self):
         np.random.seed(1)
-        df = pd.DataFrame({
-            "a": np.random.randn(60),
-            "target": np.random.randint(0, 2, 60),
-        })
+        df = pd.DataFrame(
+            {
+                "a": np.random.randn(60),
+                "target": np.random.randint(0, 2, 60),
+            }
+        )
         path = self._make_csv(df)
         try:
             bad_code = "df['bad'] = 1 / 0"  # will raise ZeroDivisionError

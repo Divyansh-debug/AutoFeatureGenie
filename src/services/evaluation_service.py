@@ -9,6 +9,7 @@ Empirically validates a generated feature by:
 
 Supports both classification (F1) and regression (RMSE) tasks.
 """
+
 from __future__ import annotations
 
 import traceback
@@ -23,10 +24,10 @@ from sklearn.preprocessing import LabelEncoder
 
 from src.utils.logger import logger
 
-
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
 
 def _detect_task(df: pd.DataFrame, target_col: str) -> str:
     """Return 'classification' or 'regression' based on the target column."""
@@ -36,7 +37,9 @@ def _detect_task(df: pd.DataFrame, target_col: str) -> str:
     return "regression"
 
 
-def _prepare_features(df: pd.DataFrame, target_col: str) -> tuple[pd.DataFrame, pd.Series]:
+def _prepare_features(
+    df: pd.DataFrame, target_col: str
+) -> tuple[pd.DataFrame, pd.Series]:
     """Drop non-numeric columns, encode categoricals, split X / y."""
     df = df.copy()
     y = df.pop(target_col)
@@ -63,18 +66,23 @@ def _score_model(X: pd.DataFrame, y: pd.Series, task: str, cv: int = 3) -> float
     (so that higher = better in both cases).
     """
     if task == "classification":
-        model = GradientBoostingClassifier(n_estimators=50, max_depth=3, random_state=42)
+        model = GradientBoostingClassifier(
+            n_estimators=50, max_depth=3, random_state=42
+        )
         scores = cross_val_score(model, X, y, cv=cv, scoring="f1_macro")
         return float(np.mean(scores))
     else:
         model = GradientBoostingRegressor(n_estimators=50, max_depth=3, random_state=42)
-        scores = cross_val_score(model, X, y, cv=cv, scoring="neg_root_mean_squared_error")
+        scores = cross_val_score(
+            model, X, y, cv=cv, scoring="neg_root_mean_squared_error"
+        )
         return float(np.mean(scores))  # already negative RMSE
 
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def evaluate_feature(
     file_path: str,

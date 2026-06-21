@@ -19,6 +19,7 @@ async def health_check():
     db_status = "unknown"
     try:
         from src.database.database import engine
+
         with engine.connect() as conn:
             conn.execute(__import__("sqlalchemy").text("SELECT 1"))
         db_status = "connected"
@@ -32,6 +33,7 @@ async def health_check():
     if redis_url:
         try:
             import redis as redis_lib
+
             r = redis_lib.from_url(redis_url, socket_connect_timeout=1)
             r.ping()
             cache_status = "connected"

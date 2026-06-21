@@ -17,7 +17,9 @@ router = APIRouter()
 @router.get("/feature-suggestions/")
 async def feature_suggestions(
     filename: str = Query(..., description="Name of the uploaded file"),
-    domain: str = Query("telecom", description="Domain context for feature suggestions"),
+    domain: str = Query(
+        "telecom", description="Domain context for feature suggestions"
+    ),
     db: Session = Depends(get_db),
 ):
     """
@@ -72,15 +74,21 @@ async def feature_suggestions(
         raise
     except Exception as e:
         logger.error(f"Feature generation failed: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Feature generation failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Feature generation failed: {str(e)}"
+        )
 
 
 @router.post("/validate-feature/")
 async def validate_feature(
     filename: str = Query(..., description="Name of the uploaded CSV file"),
     target_col: str = Query(..., description="Target column in the dataset"),
-    code_snippet: str = Body(..., media_type="text/plain", description="Python code snippet to evaluate"),
-    suggestion_id: Optional[int] = Query(None, description="DB id of FeatureSuggestion to update"),
+    code_snippet: str = Body(
+        ..., media_type="text/plain", description="Python code snippet to evaluate"
+    ),
+    suggestion_id: Optional[int] = Query(
+        None, description="DB id of FeatureSuggestion to update"
+    ),
     db: Session = Depends(get_db),
 ):
     """
@@ -99,7 +107,11 @@ async def validate_feature(
 
     # Persist improvement score if we have a suggestion_id
     if suggestion_id and result.get("status") == "success":
-        sg = db.query(FeatureSuggestion).filter(FeatureSuggestion.id == suggestion_id).first()
+        sg = (
+            db.query(FeatureSuggestion)
+            .filter(FeatureSuggestion.id == suggestion_id)
+            .first()
+        )
         if sg:
             sg.improvement_score = result["improvement"]
             db.commit()
@@ -113,7 +125,7 @@ async def get_history(
     db: Session = Depends(get_db),
 ):
     """
-    Return the most recent feature suggestions stored in the DB, 
+    Return the most recent feature suggestions stored in the DB,
     including their parent dataset name — used by the frontend History tab.
     """
     rows = (

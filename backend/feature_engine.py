@@ -4,6 +4,7 @@ Feature Engine — upgraded with:
   • LangChain Gemini integration with retry / fallback
   • Full code_snippet + expected_impact + complexity in suggestions
 """
+
 from __future__ import annotations
 
 import json
@@ -26,6 +27,7 @@ from src.utils.logger import logger
 # Pydantic schema — guarantees the shape of every suggestion returned to callers
 # ---------------------------------------------------------------------------
 
+
 class FeatureSuggestionSchema(BaseModel):
     """Structured output schema for a single feature engineering suggestion."""
 
@@ -33,7 +35,9 @@ class FeatureSuggestionSchema(BaseModel):
     idea: str = Field(..., description="Short description of the feature")
     reason: str = Field(..., description="Why this feature adds value")
     code_snippet: str = Field(..., description="Executable pandas/sklearn Python code")
-    expected_impact: Optional[str] = Field(None, description="Qualitative impact estimate")
+    expected_impact: Optional[str] = Field(
+        None, description="Qualitative impact estimate"
+    )
     complexity: Optional[str] = Field(None, description="low | medium | high")
 
     @field_validator("complexity", mode="before")
@@ -67,7 +71,8 @@ if gemini_api_key:
 
         try:
             available = [
-                m.name for m in genai.list_models()
+                m.name
+                for m in genai.list_models()
                 if "generateContent" in m.supported_generation_methods
             ]
             # Pick configured model or best available
@@ -82,8 +87,15 @@ if gemini_api_key:
             else:
                 raise RuntimeError("No generateContent-capable models found.")
         except Exception as e:
-            logger.warning(f"Model discovery failed ({e}); falling back to direct init.")
-            for candidate in [model_name, "gemini-2.5-flash", "gemini-1.5-pro", "gemini-pro"]:
+            logger.warning(
+                f"Model discovery failed ({e}); falling back to direct init."
+            )
+            for candidate in [
+                model_name,
+                "gemini-2.5-flash",
+                "gemini-1.5-pro",
+                "gemini-pro",
+            ]:
                 try:
                     _genai_model = genai.GenerativeModel(candidate)
                     logger.info(f"Gemini model (fallback): {candidate}")
@@ -113,6 +125,7 @@ except Exception as e:
 # EDA Summary
 # ---------------------------------------------------------------------------
 
+
 def generate_eda_summary(df: pd.DataFrame) -> dict:
     """Generate a comprehensive EDA summary for *df*."""
     logger.info(f"Generating EDA summary — shape: {df.shape}")
@@ -137,15 +150,22 @@ def generate_eda_summary(df: pd.DataFrame) -> dict:
             info["median"] = float(df[col].median())
         summary["column_info"][col] = info
 
-    targets = [c for c in df.columns if any(k in c.lower() for k in ("target", "churn", "label", "class", "y"))]
+    targets = [
+        c
+        for c in df.columns
+        if any(k in c.lower() for k in ("target", "churn", "label", "class", "y"))
+    ]
     summary["likely_target_column"] = targets[0] if targets else None
-    logger.info(f"EDA done — {len(df.columns)} cols, target: {summary['likely_target_column']}")
+    logger.info(
+        f"EDA done — {len(df.columns)} cols, target: {summary['likely_target_column']}"
+    )
     return summary
 
 
 # ---------------------------------------------------------------------------
 # Structured output parsing
 # ---------------------------------------------------------------------------
+
 
 def _parse_suggestions(text: str) -> List[dict]:
     """
@@ -155,6 +175,7 @@ def _parse_suggestions(text: str) -> List[dict]:
       2. Regex extraction of the first JSON array
       3. Returns an error dict if both fail
     """
+
     def _validate(raw_list: list) -> List[dict]:
         validated = []
         for item in raw_list:
@@ -196,6 +217,7 @@ def _parse_suggestions(text: str) -> List[dict]:
 # Main public function
 # ---------------------------------------------------------------------------
 
+
 def suggest_features(file_path: str, domain: str = "telecom") -> List[dict]:
     """
     Generate feature engineering suggestions for the CSV at *file_path*.
@@ -215,7 +237,9 @@ def suggest_features(file_path: str, domain: str = "telecom") -> List[dict]:
 
     # Retrieve RAG context
     try:
-        chunks = rag.search(f"feature engineering for {domain}", top_k=settings.RAG_TOP_K)
+        chunks = rag.search(
+            f"feature engineering for {domain}", top_k=settings.RAG_TOP_K
+        )
         context = "\n\n".join(chunks)
         logger.info(f"RAG returned {len(chunks)} context chunks.")
     except Exception as e:
@@ -226,6 +250,7 @@ def suggest_features(file_path: str, domain: str = "telecom") -> List[dict]:
 
     # Call LLM — re-fetch module-level reference so tests can patch it
     import backend.feature_engine as _self
+
     _model = _self._genai_model
     if _model is None:
         logger.error("No LLM model initialised.")
@@ -236,7 +261,12 @@ def suggest_features(file_path: str, domain: str = "telecom") -> List[dict]:
         response = _model.generate_content(prompt)
         text = getattr(response, "text", None)
         if not text:
-            return [{"error": "Empty response from LLM", "details": "Model returned no text."}]
+            return [
+                {
+                    "error": "Empty response from LLM",
+                    "details": "Model returned no text.",
+                }
+            ]
         return _parse_suggestions(text.strip())
     except Exception as e:
         logger.error(f"LLM call failed: {e}", exc_info=True)

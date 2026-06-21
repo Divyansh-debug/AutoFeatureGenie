@@ -9,7 +9,7 @@ from .exceptions import (
     RAGException,
     raise_file_too_large,
     raise_invalid_file_type,
-    raise_file_not_found
+    raise_file_not_found,
 )
 
 __all__ = [
@@ -22,6 +22,5 @@ __all__ = [
     "RAGException",
     "raise_file_too_large",
     "raise_invalid_file_type",
-    "raise_file_not_found"
+    "raise_file_not_found",
 ]
-

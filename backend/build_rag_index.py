@@ -5,6 +5,7 @@ Run this once before starting the backend, or any time you add new docs to domai
 Usage:
     python backend/build_rag_index.py [--force]
 """
+
 import sys
 import os
 
@@ -20,4 +21,6 @@ rag.load_and_index(force_reindex=force)
 
 print("✅ RAG index built/refreshed successfully.")
 print(f"   Using ChromaDB: {rag._use_chroma}")
-print(f"   Persist path:   {os.path.abspath('data/chroma_db') if rag._use_chroma else 'backend/vectorstore.pkl'}")
+print(
+    f"   Persist path:   {os.path.abspath('data/chroma_db') if rag._use_chroma else 'backend/vectorstore.pkl'}"
+)

@@ -1,4 +1,5 @@
 """Integration tests for AutoFeatureGenie API endpoints"""
+
 import io
 import os
 import tempfile
@@ -36,6 +37,7 @@ def _make_csv_bytes(df: pd.DataFrame) -> bytes:
 # Health & Root
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def test_health_check(client):
     """Health endpoint returns 200 with expected fields."""
     response = client.get("/health")
@@ -59,6 +61,7 @@ def test_root_endpoint(client):
 # ─────────────────────────────────────────────────────────────────────────────
 # Upload
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def test_upload_csv_success(client):
     """Valid CSV upload returns 200 with EDA summary."""
@@ -99,6 +102,7 @@ def test_upload_non_csv(client):
 # ─────────────────────────────────────────────────────────────────────────────
 # Feature Suggestions
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def test_feature_suggestions_file_not_found(client):
     """Non-existent file returns 404."""
@@ -149,6 +153,7 @@ def test_feature_suggestions_success(mock_suggest, client):
 # History
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def test_history_endpoint(client):
     """History endpoint returns 200 with expected structure."""
     response = client.get("/history/", params={"limit": 5})
@@ -162,6 +167,7 @@ def test_history_endpoint(client):
 # ─────────────────────────────────────────────────────────────────────────────
 # Validate-Feature
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @patch("src.services.evaluation_service.evaluate_feature")
 def test_validate_feature_success(mock_eval, client):

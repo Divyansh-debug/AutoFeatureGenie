@@ -7,7 +7,7 @@ celery_app = Celery(
     "auto_feature_genie",
     broker=redis_url,
     backend=redis_url,
-    include=["src.worker.tasks"]
+    include=["src.worker.tasks"],
 )
 
 celery_app.conf.update(

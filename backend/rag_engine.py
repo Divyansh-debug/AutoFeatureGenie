@@ -3,6 +3,7 @@ RAG Engine — upgraded with LangChain RecursiveCharacterTextSplitter + ChromaDB
 Replaces naive 300-char slicing with proper semantic chunking and a persistent
 vector store.
 """
+
 import os
 from pathlib import Path
 from typing import List
@@ -17,15 +18,19 @@ try:
     from langchain.text_splitter import RecursiveCharacterTextSplitter
     from langchain_community.vectorstores import Chroma
     from langchain_community.embeddings import HuggingFaceEmbeddings
+
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False
-    logger.warning("LangChain / ChromaDB not installed; RAG will use legacy FAISS fallback.")
+    logger.warning(
+        "LangChain / ChromaDB not installed; RAG will use legacy FAISS fallback."
+    )
 
 try:
     import faiss
     import pickle
     from sentence_transformers import SentenceTransformer
+
     FAISS_AVAILABLE = True
 except ImportError:
     FAISS_AVAILABLE = False
@@ -92,7 +97,9 @@ class RAGEngine:
         embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
 
         # If persisted store exists and not forcing, just load it
-        if not force_reindex and os.path.exists(os.path.join(CHROMA_PERSIST_DIR, "chroma.sqlite3")):
+        if not force_reindex and os.path.exists(
+            os.path.join(CHROMA_PERSIST_DIR, "chroma.sqlite3")
+        ):
             logger.info("ChromaDB store found — loading from disk.")
             self._vectorstore = Chroma(
                 persist_directory=CHROMA_PERSIST_DIR,
@@ -111,11 +118,15 @@ class RAGEngine:
         for filepath in Path(self.doc_folder).glob("*.txt"):
             with open(filepath, "r", encoding="utf-8") as f:
                 text = f.read()
-            chunks = splitter.create_documents([text], metadatas=[{"source": filepath.name}])
+            chunks = splitter.create_documents(
+                [text], metadatas=[{"source": filepath.name}]
+            )
             all_docs.extend(chunks)
 
         if not all_docs:
-            logger.warning(f"No .txt files found in '{self.doc_folder}'. RAG context will be empty.")
+            logger.warning(
+                f"No .txt files found in '{self.doc_folder}'. RAG context will be empty."
+            )
             return
 
         self._vectorstore = Chroma.from_documents(
@@ -192,6 +203,7 @@ class RAGEngine:
 # ---------------------------------------------------------------------------
 # Module-level singleton helper (used by feature_engine.py)
 # ---------------------------------------------------------------------------
+
 
 def fetch_context_from_rag(query: str, top_k: int = 3) -> str:
     """Convenience function: create a fresh RAGEngine, load index, search."""

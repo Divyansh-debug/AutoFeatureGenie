@@ -6,7 +6,7 @@ from .schemas import (
     UploadResponse,
     FeatureSuggestionsResponse,
     ErrorResponse,
-    HealthResponse
+    HealthResponse,
 )
 
 __all__ = [
@@ -15,6 +15,5 @@ __all__ = [
     "UploadResponse",
     "FeatureSuggestionsResponse",
     "ErrorResponse",
-    "HealthResponse"
+    "HealthResponse",
 ]
-
