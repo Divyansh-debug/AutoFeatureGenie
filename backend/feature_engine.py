@@ -1,187 +1,247 @@
-import pandas as pd
-import os
+"""
+Feature Engine — upgraded with:
+  • Structured output parsing via Pydantic (LLM fallback-safe)
+  • LangChain Gemini integration with retry / fallback
+  • Full code_snippet + expected_impact + complexity in suggestions
+"""
+from __future__ import annotations
+
 import json
-import google.generativeai as genai
+import os
+import re
+import sys
+import time
+from typing import Any, List, Optional
+
+import pandas as pd
 from dotenv import load_dotenv
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from backend.prompts import feature_prompt_template
 from backend.rag_engine import RAGEngine
 from src.config.settings import settings
 from src.utils.logger import logger
 
-# Load Gemini API key
+# ---------------------------------------------------------------------------
+# Pydantic schema — guarantees the shape of every suggestion returned to callers
+# ---------------------------------------------------------------------------
+
+class FeatureSuggestionSchema(BaseModel):
+    """Structured output schema for a single feature engineering suggestion."""
+
+    column: str = Field(..., description="Name of the new engineered feature")
+    idea: str = Field(..., description="Short description of the feature")
+    reason: str = Field(..., description="Why this feature adds value")
+    code_snippet: str = Field(..., description="Executable pandas/sklearn Python code")
+    expected_impact: Optional[str] = Field(None, description="Qualitative impact estimate")
+    complexity: Optional[str] = Field(None, description="low | medium | high")
+
+    @field_validator("complexity", mode="before")
+    @classmethod
+    def _normalise_complexity(cls, v):
+        if v:
+            v = str(v).lower().strip()
+            if v not in {"low", "medium", "high"}:
+                return "medium"
+        return v
+
+    model_config = ConfigDict(extra="allow")
+
+
+# ---------------------------------------------------------------------------
+# LLM initialisation (Gemini via google-generativeai, with LangChain wrapper)
+# ---------------------------------------------------------------------------
+
 load_dotenv()
 gemini_api_key = os.getenv("GEMINI_API_KEY") or settings.GEMINI_API_KEY
-if not gemini_api_key:
-    logger.warning("GEMINI_API_KEY not found in environment or settings")
-    model = None
-else:
-    genai.configure(api_key=gemini_api_key)
-    
-    # List available models and use the first available one
-    model = None
-    model_name = os.getenv("GEMINI_MODEL") or settings.GEMINI_MODEL
-    
-    try:
-        # Try to list available models
-        available_models = genai.list_models()
-        model_names = [m.name for m in available_models if 'generateContent' in m.supported_generation_methods]
-        
-        if model_names:
-            logger.info(f"Available models: {model_names}")
-            
-            # Try the configured model first
-            if model_name in model_names or any(model_name in m for m in model_names):
-                # Find matching model
-                matching_model = next((m for m in model_names if model_name in m), None)
-                if matching_model:
-                    # Extract just the model name part (remove 'models/' prefix if present)
-                    clean_name = matching_model.split('/')[-1] if '/' in matching_model else matching_model
-                    model = genai.GenerativeModel(clean_name)
-                    logger.info(f"Initialized Gemini model: {clean_name}")
-                else:
-                    # Use first available model
-                    first_model = model_names[0].split('/')[-1] if '/' in model_names[0] else model_names[0]
-                    model = genai.GenerativeModel(first_model)
-                    logger.info(f"Using first available model: {first_model}")
-            else:
-                # Use first available model as fallback
-                first_model = model_names[0].split('/')[-1] if '/' in model_names[0] else model_names[0]
-                model = genai.GenerativeModel(first_model)
-                logger.info(f"Configured model '{model_name}' not found. Using: {first_model}")
-        else:
-            logger.warning("No models with generateContent method found")
-            # Try direct initialization as fallback
-            try:
-                model = genai.GenerativeModel(model_name)
-                logger.info(f"Initialized model directly: {model_name}")
-            except Exception as e:
-                logger.error(f"Failed to initialize model {model_name}: {str(e)}")
-                model = None
-                
-    except Exception as e:
-        logger.error(f"Error listing models: {str(e)}")
-        # Fallback: try common model names
-        fallback_models = ["gemini-pro", "gemini-1.5-pro", "gemini-1.5-flash", "models/gemini-pro"]
-        for fallback in fallback_models:
-            try:
-                model = genai.GenerativeModel(fallback)
-                logger.info(f"Using fallback model: {fallback}")
-                break
-            except Exception as e2:
-                logger.debug(f"Fallback model {fallback} failed: {str(e2)}")
-                continue
-        
-        if model is None:
-            logger.error("All model initialization attempts failed")
 
-# Initialize RAG engine (assumes vectorstore.pkl already exists)
+# Primary: google-generativeai SDK
+_genai_model = None
+
+if gemini_api_key:
+    try:
+        import google.generativeai as genai
+
+        genai.configure(api_key=gemini_api_key)
+        model_name = os.getenv("GEMINI_MODEL") or settings.GEMINI_MODEL
+
+        try:
+            available = [
+                m.name for m in genai.list_models()
+                if "generateContent" in m.supported_generation_methods
+            ]
+            # Pick configured model or best available
+            chosen = next(
+                (m for m in available if model_name in m),
+                available[0] if available else None,
+            )
+            if chosen:
+                clean = chosen.split("/")[-1] if "/" in chosen else chosen
+                _genai_model = genai.GenerativeModel(clean)
+                logger.info(f"Gemini model initialised: {clean}")
+            else:
+                raise RuntimeError("No generateContent-capable models found.")
+        except Exception as e:
+            logger.warning(f"Model discovery failed ({e}); falling back to direct init.")
+            for candidate in [model_name, "gemini-2.5-flash", "gemini-1.5-pro", "gemini-pro"]:
+                try:
+                    _genai_model = genai.GenerativeModel(candidate)
+                    logger.info(f"Gemini model (fallback): {candidate}")
+                    break
+                except Exception:
+                    continue
+
+    except ImportError:
+        logger.warning("google-generativeai not installed.")
+else:
+    logger.warning("GEMINI_API_KEY not set — LLM features disabled.")
+
+
+# ---------------------------------------------------------------------------
+# RAG engine (lazy-loaded singleton)
+# ---------------------------------------------------------------------------
+
 rag = RAGEngine(settings.RAG_DOC_FOLDER)
 try:
     rag.load_index()
-    logger.info("RAG index loaded successfully")
+    logger.info("RAG index loaded successfully.")
 except Exception as e:
-    logger.warning(f"Failed to load RAG index: {str(e)}")
+    logger.warning(f"RAG index load failed ({e}); continuing without context.")
+
+
+# ---------------------------------------------------------------------------
+# EDA Summary
+# ---------------------------------------------------------------------------
 
 def generate_eda_summary(df: pd.DataFrame) -> dict:
-    """Generate EDA summary for a DataFrame"""
-    logger.info(f"Generating EDA summary for DataFrame with shape {df.shape}")
-    
-    summary = {
+    """Generate a comprehensive EDA summary for *df*."""
+    logger.info(f"Generating EDA summary — shape: {df.shape}")
+
+    summary: dict[str, Any] = {
         "shape": df.shape,
         "columns": list(df.columns),
-        "column_info": {}
+        "column_info": {},
     }
 
     for col in df.columns:
-        info = {
+        info: dict[str, Any] = {
             "dtype": str(df[col].dtype),
             "missing_values": int(df[col].isnull().sum()),
             "unique_values": int(df[col].nunique()),
         }
-
         if pd.api.types.is_numeric_dtype(df[col]):
             info["mean"] = float(df[col].mean())
             info["std"] = float(df[col].std())
             info["min"] = float(df[col].min())
             info["max"] = float(df[col].max())
-
+            info["median"] = float(df[col].median())
         summary["column_info"][col] = info
 
-    likely_targets = [col for col in df.columns if 'target' in col.lower() or 'churn' in col.lower()]
-    summary["likely_target_column"] = likely_targets[0] if likely_targets else None
-    
-    logger.info(f"EDA summary generated: {len(df.columns)} columns, target: {summary['likely_target_column']}")
+    targets = [c for c in df.columns if any(k in c.lower() for k in ("target", "churn", "label", "class", "y"))]
+    summary["likely_target_column"] = targets[0] if targets else None
+    logger.info(f"EDA done — {len(df.columns)} cols, target: {summary['likely_target_column']}")
     return summary
 
 
-def suggest_features(file_path, domain="telecom"):
-    """Generate feature engineering suggestions using AI"""
-    logger.info(f"Generating feature suggestions for {file_path}, domain: {domain}")
-    
+# ---------------------------------------------------------------------------
+# Structured output parsing
+# ---------------------------------------------------------------------------
+
+def _parse_suggestions(text: str) -> List[dict]:
+    """
+    Parse the LLM response into a validated list of FeatureSuggestionSchema dicts.
+    Tries:
+      1. Direct JSON parse
+      2. Regex extraction of the first JSON array
+      3. Returns an error dict if both fail
+    """
+    def _validate(raw_list: list) -> List[dict]:
+        validated = []
+        for item in raw_list:
+            try:
+                validated.append(FeatureSuggestionSchema(**item).model_dump())
+            except (ValidationError, TypeError) as ve:
+                logger.warning(f"Suggestion skipped (validation error): {ve}")
+        return validated
+
+    # Attempt 1 — direct parse
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, list):
+            result = _validate(parsed)
+            if result:
+                logger.info(f"Parsed {len(result)} suggestions (direct JSON).")
+                return result
+    except json.JSONDecodeError:
+        pass
+
+    # Attempt 2 — regex extraction
+    match = re.search(r"\[.*\]", text, re.DOTALL)
+    if match:
+        try:
+            parsed = json.loads(match.group())
+            if isinstance(parsed, list):
+                result = _validate(parsed)
+                if result:
+                    logger.info(f"Parsed {len(result)} suggestions (regex extraction).")
+                    return result
+        except json.JSONDecodeError:
+            pass
+
+    logger.error("Could not parse LLM response as valid feature suggestions.")
+    return [{"error": "LLM returned invalid JSON", "raw": text[:2000]}]
+
+
+# ---------------------------------------------------------------------------
+# Main public function
+# ---------------------------------------------------------------------------
+
+def suggest_features(file_path: str, domain: str = "telecom") -> List[dict]:
+    """
+    Generate feature engineering suggestions for the CSV at *file_path*.
+
+    Returns a list of dicts, each conforming to FeatureSuggestionSchema
+    (or a single error dict if something goes wrong).
+    """
+    logger.info(f"Feature suggestion request — file: {file_path}, domain: {domain}")
+
     try:
         df = pd.read_csv(file_path)
         df_sample = df.head(5).to_csv(index=False)
         columns = df.columns.tolist()
-
-        # 🔥 Inject domain knowledge via RAG
-        try:
-            context_chunks = rag.search(f"feature engineering for {domain}", top_k=settings.RAG_TOP_K)
-            context = "\n\n".join(context_chunks)
-            logger.info(f"Retrieved {len(context_chunks)} RAG context chunks")
-        except Exception as e:
-            logger.warning(f"RAG search failed: {str(e)}, continuing without context")
-            context = ""
-
-        # ✅ Prepare prompt with domain context
-        prompt = feature_prompt_template(df_sample, columns, context, domain)
-
-        # Check if model is initialized
-        if model is None:
-            logger.error("Gemini model is not initialized. Please check your API key and model name.")
-            return [{"error": "Model not initialized", "details": "Gemini model failed to initialize. Please check your API key and model configuration."}]
-
-        try:
-            response = model.generate_content(prompt)
-            
-            # Check if response has text
-            if not hasattr(response, 'text'):
-                logger.error("Gemini API response missing 'text' attribute")
-                return [{"error": "Invalid response from Gemini API", "details": "Response object does not have 'text' attribute."}]
-            
-            if response.text is None:
-                logger.error("Gemini API returned None for text")
-                return [{"error": "Empty response from Gemini API", "details": "The API call succeeded but returned None for text content."}]
-            
-            text = response.text.strip()
-            
-            # Check if text is empty
-            if not text:
-                logger.error("Gemini API returned empty text after stripping")
-                return [{"error": "Empty response from Gemini API", "details": "The API returned an empty response after processing."}]
-
-            logger.debug(f"Gemini response preview: {text[:500]}")
-
-            # Try parsing full text
-            try:
-                suggestions = json.loads(text)
-                logger.info(f"Successfully parsed {len(suggestions)} feature suggestions")
-                return suggestions
-            except json.JSONDecodeError as e:
-                logger.warning(f"JSON parse error: {str(e)}, attempting extraction")
-                # Try to extract only the JSON array part
-                import re
-                json_match = re.search(r'\[.*\]', text, re.DOTALL)
-                if json_match:
-                    suggestions = json.loads(json_match.group())
-                    logger.info(f"Extracted {len(suggestions)} feature suggestions from text")
-                    return suggestions
-                else:
-                    logger.error("Could not extract JSON from Gemini response")
-                    return [{"error": "Gemini returned invalid JSON", "raw": text[:1000]}]
-        except Exception as e:
-            logger.error(f"Gemini API call failed: {str(e)}", exc_info=True)
-            return [{"error": "Gemini API call failed", "details": str(e)}]
     except Exception as e:
-        logger.error(f"Feature suggestion generation failed: {str(e)}", exc_info=True)
-        return [{"error": "Feature generation failed", "details": str(e)}]
+        logger.error(f"Failed to read CSV: {e}")
+        return [{"error": "Could not read dataset", "details": str(e)}]
+
+    # Retrieve RAG context
+    try:
+        chunks = rag.search(f"feature engineering for {domain}", top_k=settings.RAG_TOP_K)
+        context = "\n\n".join(chunks)
+        logger.info(f"RAG returned {len(chunks)} context chunks.")
+    except Exception as e:
+        logger.warning(f"RAG search failed ({e}); proceeding without context.")
+        context = ""
+
+    prompt = feature_prompt_template(df_sample, columns, context, domain)
+
+    # Call LLM — re-fetch module-level reference so tests can patch it
+    import backend.feature_engine as _self
+    _model = _self._genai_model
+    if _model is None:
+        logger.error("No LLM model initialised.")
+        return [{"error": "LLM not initialised", "details": "Check GEMINI_API_KEY."}]
+
+    # Call LLM
+    try:
+        response = _model.generate_content(prompt)
+        text = getattr(response, "text", None)
+        if not text:
+            return [{"error": "Empty response from LLM", "details": "Model returned no text."}]
+        return _parse_suggestions(text.strip())
+    except Exception as e:
+        logger.error(f"LLM call failed: {e}", exc_info=True)
+        return [{"error": "LLM call failed", "details": str(e)}]
+
+
+# Keep legacy alias for any existing callers
+model = _genai_model

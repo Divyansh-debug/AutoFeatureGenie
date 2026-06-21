@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoFeatureGenie — AI Feature Engineering</title>
+  <meta name="description" content="AI-powered automated feature engineering. Upload your dataset, explore it interactively, and get production-ready Python feature suggestions backed by domain knowledge RAG." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <!-- Chart.js for interactive charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- highlight.js for code syntax -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <!-- ─── Animated Background ────────────────────────────────────── -->
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- ─── Sidebar ───────────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">🧬</div>
+      <div class="logo-text">
+        <span class="logo-name">AutoFeature</span>
+        <span class="logo-genie">Genie</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-section="upload" id="nav-upload">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        <span>Upload & EDA</span>
+      </a>
+      <a href="#" class="nav-item" data-section="features" id="nav-features">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        <span>AI Features</span>
+      </a>
+      <a href="#" class="nav-item" data-section="history" id="nav-history">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>History</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-status" id="backend-status">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">Connecting…</span>
+    </div>
+
+    <div class="sidebar-domain">
+      <label class="field-label">Domain</label>
+      <select id="domain-select" class="domain-select">
+        <option value="telecom">📡 Telecom</option>
+        <option value="finance">💰 Finance</option>
+        <option value="healthcare">🏥 Healthcare</option>
+        <option value="ecommerce">🛒 E-Commerce</option>
+        <option value="general">🌐 General</option>
+      </select>
+    </div>
+  </aside>
+
+  <!-- ─── Main Content ────────────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- ── SECTION: Upload & EDA ─────────────────────────────── -->
+    <section class="section active" id="section-upload">
+      <div class="section-header">
+        <h1 class="section-title">Upload & Explore</h1>
+        <p class="section-subtitle">Drop your dataset and get instant exploratory analysis.</p>
+      </div>
+
+      <!-- Drop Zone -->
+      <div class="drop-zone" id="drop-zone">
+        <div class="drop-inner">
+          <div class="drop-icon">
+            <svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="32" fill="url(#dg)"/><path d="M32 20v16M24 28l8-8 8 8" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="16" y="40" width="32" height="4" rx="2" fill="#fff" fill-opacity=".3"/><defs><linearGradient id="dg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#4f46e5"/></linearGradient></defs></svg>
+          </div>
+          <p class="drop-title">Drag &amp; drop your CSV file here</p>
+          <p class="drop-sub">or</p>
+          <label class="btn btn-outline" for="file-input">Browse file</label>
+          <input type="file" id="file-input" accept=".csv" hidden />
+          <p class="drop-hint">Max 100 MB · CSV only</p>
+        </div>
+      </div>
+
+      <!-- File selected state -->
+      <div class="file-ready hidden" id="file-ready">
+        <div class="file-card">
+          <div class="file-card-icon">📄</div>
+          <div class="file-card-info">
+            <p class="file-name" id="file-name-display"></p>
+            <p class="file-size" id="file-size-display"></p>
+          </div>
+          <button class="btn btn-primary" id="upload-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            Analyse
+          </button>
+          <button class="btn-ghost" id="clear-file-btn">✕</button>
+        </div>
+        <!-- Progress -->
+        <div class="progress-wrap hidden" id="progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+          <p class="progress-label" id="progress-label">Uploading…</p>
+        </div>
+      </div>
+
+      <!-- EDA Dashboard -->
+      <div class="eda-dashboard hidden" id="eda-dashboard">
+        <div class="dashboard-header">
+          <h2 class="dashboard-title" id="eda-title">Dataset Overview</h2>
+          <span class="badge badge-success" id="eda-badge"></span>
+        </div>
+
+        <!-- KPI row -->
+        <div class="kpi-row" id="kpi-row"></div>
+
+        <!-- Charts row -->
+        <div class="charts-row">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <h3>Distribution</h3>
+              <select id="dist-col-select" class="chart-select"></select>
+            </div>
+            <canvas id="dist-chart" height="200"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <h3>Missing Values</h3>
+            </div>
+            <canvas id="missing-chart" height="200"></canvas>
+          </div>
+        </div>
+
+        <!-- Column stats table -->
+        <div class="table-card">
+          <div class="table-card-header">
+            <h3>Column Statistics</h3>
+            <input type="text" class="table-search" id="col-search" placeholder="Search columns…" />
+          </div>
+          <div class="table-wrap">
+            <table class="stats-table" id="stats-table">
+              <thead>
+                <tr>
+                  <th>Column</th><th>Type</th><th>Missing</th><th>Unique</th><th>Mean</th><th>Std</th><th>Min</th><th>Max</th>
+                </tr>
+              </thead>
+              <tbody id="stats-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Data preview -->
+        <div class="table-card">
+          <div class="table-card-header">
+            <h3>Data Preview</h3>
+            <span class="badge badge-dim" id="preview-badge"></span>
+          </div>
+          <div class="table-wrap" id="preview-table-wrap"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION: AI Features ──────────────────────────────── -->
+    <section class="section" id="section-features">
+      <div class="section-header">
+        <h1 class="section-title">AI Feature Suggestions</h1>
+        <p class="section-subtitle">Generate production-ready feature engineering code with domain knowledge RAG.</p>
+      </div>
+
+      <div class="features-controls" id="features-controls">
+        <div class="control-group">
+          <label class="field-label">Target Column <span class="field-hint">(for Auto-Validator)</span></label>
+          <input type="text" id="target-col-input" class="field-input" placeholder="e.g. Churn, target, label…" />
+        </div>
+        <button class="btn btn-primary btn-lg" id="generate-btn" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          Generate Features
+        </button>
+      </div>
+
+      <div class="no-dataset-notice" id="no-dataset-notice">
+        <div class="notice-icon">📂</div>
+        <p>Upload a dataset first to generate feature suggestions.</p>
+        <button class="btn btn-outline" onclick="switchSection('upload')">Go to Upload</button>
+      </div>
+
+      <!-- Spinner -->
+      <div class="spinner-wrap hidden" id="feature-spinner">
+        <div class="spinner"></div>
+        <p class="spinner-label">AI is engineering features…<br/><small>This may take 30–90 seconds</small></p>
+      </div>
+
+      <!-- Results -->
+      <div class="features-list hidden" id="features-list"></div>
+    </section>
+
+    <!-- ── SECTION: History ──────────────────────────────────── -->
+    <section class="section" id="section-history">
+      <div class="section-header">
+        <div class="section-header-row">
+          <div>
+            <h1 class="section-title">History</h1>
+            <p class="section-subtitle">Browse all past feature suggestions stored in the database.</p>
+          </div>
+          <button class="btn btn-outline" id="refresh-history-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div class="spinner-wrap hidden" id="history-spinner">
+        <div class="spinner"></div>
+        <p class="spinner-label">Loading history…</p>
+      </div>
+
+      <div class="empty-state hidden" id="history-empty">
+        <div class="empty-icon">📜</div>
+        <p>No history yet. Generate some feature suggestions first!</p>
+      </div>
+
+      <!-- Score chart -->
+      <div class="chart-card chart-card-full hidden" id="history-chart-card">
+        <div class="chart-card-header"><h3>Improvement Score by Feature</h3></div>
+        <canvas id="history-chart" height="120"></canvas>
+      </div>
+
+      <div class="table-card hidden" id="history-table-card">
+        <div class="table-card-header">
+          <h3>Feature Suggestions Log</h3>
+          <span class="badge badge-dim" id="history-count-badge"></span>
+        </div>
+        <div class="table-wrap">
+          <table class="stats-table" id="history-table">
+            <thead>
+              <tr>
+                <th>#</th><th>Dataset</th><th>Feature Column</th><th>Idea</th><th>Improvement</th><th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ─── Toast Notification ──────────────────────────────────── -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ─── Validator Modal ─────────────────────────────────────── -->
+  <div class="modal-overlay hidden" id="validator-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Auto-Validator Result</h3>
+        <button class="btn-ghost" id="modal-close">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

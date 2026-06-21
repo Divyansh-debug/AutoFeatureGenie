@@ -26,12 +26,13 @@ This project provides a comprehensive suite of tools for exploratory data analys
 ## 🛠️ Tech Stack
 
 - **Frontend:**  
-  - `Streamlit`: For building the user interface.  
-  - `Pandas`: For data manipulation and display.  
-  - `Requests`: For API communication.  
+  - HTML5, Vanilla CSS (Glassmorphism & animated dark mode layout)
+  - JavaScript (ES6+) for interactive UI logic and backend communication
+  - Chart.js for data visualization (distributions & missing values)
+  - Highlight.js for Python syntax highlighting
 
 - **Backend:**  
-  - `FastAPI`: For creating RESTful APIs.  
+  - `FastAPI`: For hosting RESTful APIs and serving the static frontend application.  
   - `Pandas`: For data analysis and processing.  
   - `Feature Engine`: For EDA and feature suggestions.  
 
@@ -70,17 +71,12 @@ This project provides a comprehensive suite of tools for exploratory data analys
 3. Set up environment variables:  
    - Create a `.env` file and add your Google Cloud API key:  
      ```bash
-     echo "GOOGLE_API_KEY=your-api-key" > .env
+     GEMINI_API_KEY=your-api-key
      ```
 
-4. Start the backend server:  
+4. Start the server (hosts both backend and frontend):  
    ```bash
    uvicorn backend.main:app --reload
-   ```
-
-5. Launch the frontend:  
-   ```bash
-   streamlit run frontend/app.py
    ```
 
 ---
@@ -89,29 +85,23 @@ This project provides a comprehensive suite of tools for exploratory data analys
 
 ### Running the Application
 
-1. **Start the Backend:**  
+1. **Start the Backend and Frontend Server:**  
    ```bash
    uvicorn backend.main:app --reload
    ```
-   - The backend server will start on `http://localhost:8000`.
-
-2. **Launch the Frontend:**  
-   ```bash
-   streamlit run frontend/app.py
-   ```
-   - The frontend will open in your default browser at `http://localhost:8501`.
+   - The application will be accessible in your browser at `http://localhost:8000`.
 
 ### Using the Application
 
 1. **Upload a CSV File:**  
-   - Navigate to the frontend interface.  
-   - Click the file uploader and select a CSV file.  
+   - Navigate to the web application at `http://localhost:8000`.  
+   - Drag and drop or browse to select a CSV file.  
 
 2. **Generate EDA Summary:**  
-   - Click the "Upload" button to generate and display the EDA summary.  
+   - Click "Analyse" to generate and display the interactive EDA summary, distributions, and column statistics.  
 
 3. **Get Feature Suggestions:**  
-   - Click the "Get Feature Suggestions" button to fetch and display AI-generated feature ideas.  
+   - Enter your target column (if any), switch to the "AI Features" tab, and click "Generate Features" to fetch and display AI-generated feature ideas.  
 
 ---
 
@@ -125,7 +115,11 @@ This project provides a comprehensive suite of tools for exploratory data analys
 │   ├── prompts.py
 │   └── feature_engine.py
 ├── frontend/
-│   └── app.py
+│   ├── index.html
+│   ├── js/
+│   │   └── app.js
+│   └── css/
+│       └── style.css
 ├── requirements.txt
 └── .env
 ```

@@ -1,32 +1,64 @@
-def feature_prompt_template(df_sample: str, columns: list, domain_knowledge: str, domain: str = "general") -> str:
-    return f"""
-You are a top-tier data scientist skilled in feature engineering. Based on the provided data sample and domain knowledge, suggest smart and practical feature engineering ideas to improve ML model performance.
+"""Prompt templates for AutoFeatureGenie feature engineering suggestions."""
 
-### Sample Data (First Few Rows)
+
+def feature_prompt_template(
+    df_sample: str,
+    columns: list,
+    domain_knowledge: str,
+    domain: str = "general",
+) -> str:
+    """
+    Build the LLM prompt for feature engineering suggestions.
+
+    The prompt asks the model to return a *strict* JSON array where every
+    element has the following guaranteed fields:
+        - column        : name of the new engineered feature
+        - idea          : short plain-English explanation
+        - reason        : business / ML justification
+        - code_snippet  : executable pandas / sklearn Python code
+        - expected_impact : qualitative impact estimate
+        - complexity    : one of  low | medium | high
+    """
+    return f"""
+You are a senior Data Scientist specialising in feature engineering for {domain} ML models.
+Your task: generate 5–7 creative, high-value engineered features based on the dataset below.
+
+─────────────────────────────────────────────────────────────
+DATASET SAMPLE (first few rows)
+─────────────────────────────────────────────────────────────
 {df_sample}
 
-### Columns
+COLUMN LIST
 {columns}
 
-### Domain
+DOMAIN
 {domain}
 
-### Domain Knowledge
-{domain_knowledge}
+DOMAIN KNOWLEDGE (from RAG retrieval)
+{domain_knowledge if domain_knowledge else "No additional domain knowledge available."}
 
-Your task:
-- Suggest 5–7 relevant and unique features.
-- Use the domain knowledge to guide your creativity.
-- Avoid suggesting features already present.
-- Include transformations, combinations, or encoding ideas.
+─────────────────────────────────────────────────────────────
+INSTRUCTIONS
+─────────────────────────────────────────────────────────────
+1. Do NOT suggest features that already exist in the column list above.
+2. Suggest transformations, interactions, aggregations, or encoding ideas.
+3. For each feature write a complete, runnable Python snippet using pandas or
+   scikit-learn.  Assume the dataframe variable is called `df`.
+4. Estimate the expected_impact qualitatively (e.g., "Likely to reduce RMSE
+   by 5–10%").
+5. Rate complexity as: low | medium | high.
 
-Respond ONLY in strict JSON format:
+─────────────────────────────────────────────────────────────
+OUTPUT FORMAT — respond ONLY with a valid JSON array, no other text.
+─────────────────────────────────────────────────────────────
 [
   {{
     "column": "feature_name",
-    "idea": "Short explanation of the new feature",
-    "reason": "Why this is a valuable feature",
-    "code_snippet": "Python code using pandas or sklearn"
+    "idea": "Short plain-English description of the new feature",
+    "reason": "Why this feature adds predictive value for a {domain} model",
+    "code_snippet": "df['feature_name'] = ...",
+    "expected_impact": "Expected effect on model performance",
+    "complexity": "low | medium | high"
   }},
   ...
 ]

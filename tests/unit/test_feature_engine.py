@@ -63,9 +63,9 @@ class TestGenerateEDASummary:
 class TestSuggestFeatures:
     """Test cases for feature suggestion"""
     
-    @patch('backend.feature_engine.model')
     @patch('backend.feature_engine.rag')
-    def test_successful_feature_suggestion(self, mock_rag, mock_model):
+    @patch('backend.feature_engine._genai_model')
+    def test_successful_feature_suggestion(self, mock_model, mock_rag):
         """Test successful feature suggestion"""
         # Setup mocks
         mock_rag.search.return_value = ["domain context"]
@@ -87,9 +87,9 @@ class TestSuggestFeatures:
             if os.path.exists(test_file):
                 os.remove(test_file)
     
-    @patch('backend.feature_engine.model')
     @patch('backend.feature_engine.rag')
-    def test_api_error_handling(self, mock_rag, mock_model):
+    @patch('backend.feature_engine._genai_model')
+    def test_api_error_handling(self, mock_model, mock_rag):
         """Test error handling when API fails"""
         mock_rag.search.return_value = []
         mock_model.generate_content.side_effect = Exception("API Error")
@@ -107,9 +107,9 @@ class TestSuggestFeatures:
             if os.path.exists(test_file):
                 os.remove(test_file)
     
-    @patch('backend.feature_engine.model')
     @patch('backend.feature_engine.rag')
-    def test_invalid_json_response(self, mock_rag, mock_model):
+    @patch('backend.feature_engine._genai_model')
+    def test_invalid_json_response(self, mock_model, mock_rag):
         """Test handling of invalid JSON response"""
         mock_rag.search.return_value = []
         mock_response = MagicMock()

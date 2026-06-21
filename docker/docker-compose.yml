@@ -1,34 +1,64 @@
 version: '3.8'
 
 services:
+  # ── Redis (message broker + result backend) ─────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: afg_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Celery Worker ──────────────────────────────────────────────────────────
+  celery_worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: afg_celery_worker
+    command: celery -A src.worker.celery_app worker --loglevel=info --concurrency=2
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - REDIS_URL=redis://redis:6379/0
+      - LOG_LEVEL=INFO
+    volumes:
+      - ../data:/app/data
+      - ../domain_docs:/app/domain_docs
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── FastAPI Backend ────────────────────────────────────────────────────────
   backend:
     build:
       context: ..
       dockerfile: docker/Dockerfile.backend
+    container_name: afg_backend
     ports:
       - "8000:8000"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - REDIS_URL=redis://redis:6379/0
       - LOG_LEVEL=INFO
       - DEBUG=false
     volumes:
-      - ../data:/app/data
+      - ../data:/app/data           # CSV uploads + SQLite DB persist here
+      - ../domain_docs:/app/domain_docs
+      - chroma_data:/app/data/chroma_db   # ChromaDB vector store
+    depends_on:
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-
-  frontend:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile.frontend
-    ports:
-      - "8501:8501"
-    environment:
-      - BACKEND_URL=http://backend:8000
-    depends_on:
-      - backend
-    restart: unless-stopped
-
+volumes:
+  chroma_data:
+    driver: local
