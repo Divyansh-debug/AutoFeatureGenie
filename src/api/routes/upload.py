@@ -1,16 +1,17 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
-from sqlalchemy.orm import Session
-import pandas as pd
-import os
 import io
+import os
 
+import pandas as pd
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from sqlalchemy.orm import Session
+
+from backend.feature_engine import generate_eda_summary
 from src.config.settings import settings
-from src.models.schemas import UploadResponse
-from src.utils.logger import logger
-from src.utils.exceptions import raise_file_too_large, raise_invalid_file_type
 from src.database.database import get_db
 from src.database.models import Dataset
-from backend.feature_engine import generate_eda_summary
+from src.models.schemas import UploadResponse
+from src.utils.exceptions import raise_file_too_large, raise_invalid_file_type
+from src.utils.logger import logger
 
 router = APIRouter()
 

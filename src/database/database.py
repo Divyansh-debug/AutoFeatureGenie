@@ -1,7 +1,9 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+
 from src.config.settings import settings
-import os
 
 # Ensure data directory exists (handle single-segment paths like "data")
 _upload_parent = os.path.dirname(settings.UPLOAD_DIR)

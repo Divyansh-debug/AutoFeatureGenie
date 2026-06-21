@@ -1,8 +1,9 @@
 """Pydantic models for API request/response validation"""
 
-from pydantic import BaseModel, Field, validator
-from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
+from pydantic import BaseModel, Field
 
 
 class EDASummary(BaseModel):

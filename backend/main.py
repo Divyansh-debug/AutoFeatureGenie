@@ -1,18 +1,17 @@
+import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from contextlib import asynccontextmanager
-import time
-import os
-
-from src.config.settings import settings
-from src.utils.logger import logger
-from src.middleware.rate_limit import RateLimitMiddleware
-from src.database.database import engine, Base
 
 # Import the new routers
-from src.api.routes import upload, features, health
+from src.api.routes import features, health, upload
+from src.config.settings import settings
+from src.database.database import Base, engine
+from src.middleware.rate_limit import RateLimitMiddleware
+from src.utils.logger import logger
 
 
 @asynccontextmanager

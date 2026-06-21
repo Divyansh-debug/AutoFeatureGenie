@@ -2,15 +2,14 @@
 
 import io
 import os
-import tempfile
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
 
 from backend.main import app
-from src.database.database import engine, Base
+from src.database.database import Base, engine
 
 
 @pytest.fixture(autouse=True, scope="module")

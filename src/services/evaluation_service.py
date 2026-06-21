@@ -13,12 +13,10 @@ Supports both classification (F1) and regression (RMSE) tasks.
 from __future__ import annotations
 
 import traceback
-from typing import Optional
 
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
-from sklearn.metrics import f1_score, mean_squared_error
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import LabelEncoder
 

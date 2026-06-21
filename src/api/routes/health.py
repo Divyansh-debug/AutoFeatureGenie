@@ -1,6 +1,7 @@
-from fastapi import APIRouter
-import time
 import os
+import time
+
+from fastapi import APIRouter
 
 from src.config.settings import settings
 from src.models.schemas import HealthResponse

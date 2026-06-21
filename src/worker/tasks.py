@@ -1,5 +1,5 @@
-from src.worker.celery_app import celery_app
 from src.utils.logger import logger
+from src.worker.celery_app import celery_app
 
 
 @celery_app.task(bind=True)

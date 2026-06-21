@@ -2,14 +2,14 @@
 
 import os
 import tempfile
-import pytest
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 
 from src.services.evaluation_service import (
-    evaluate_feature,
     _detect_task,
     _prepare_features,
+    evaluate_feature,
 )
 
 

@@ -1,15 +1,16 @@
-from fastapi import APIRouter, Query, HTTPException, Depends, Body
-from sqlalchemy.orm import Session
 import os
 import time
 from typing import Optional
 
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+
+from backend.feature_engine import suggest_features
 from src.config.settings import settings
-from src.utils.logger import logger
-from src.utils.exceptions import raise_file_not_found
 from src.database.database import get_db
 from src.database.models import Dataset, FeatureSuggestion
-from backend.feature_engine import suggest_features
+from src.utils.exceptions import raise_file_not_found
+from src.utils.logger import logger
 
 router = APIRouter()
 

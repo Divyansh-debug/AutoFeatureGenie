@@ -6,8 +6,8 @@ Usage:
     python backend/build_rag_index.py [--force]
 """
 
-import sys
 import os
+import sys
 
 # Ensure project root is in the path when called from project root
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

@@ -2,11 +2,11 @@
 
 from .schemas import (
     EDASummary,
-    FeatureSuggestion,
-    UploadResponse,
-    FeatureSuggestionsResponse,
     ErrorResponse,
+    FeatureSuggestion,
+    FeatureSuggestionsResponse,
     HealthResponse,
+    UploadResponse,
 )
 
 __all__ = [

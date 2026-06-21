@@ -16,8 +16,8 @@ from src.utils.logger import logger
 # ---------------------------------------------------------------------------
 try:
     from langchain.text_splitter import RecursiveCharacterTextSplitter
-    from langchain_community.vectorstores import Chroma
     from langchain_community.embeddings import HuggingFaceEmbeddings
+    from langchain_community.vectorstores import Chroma
 
     LANGCHAIN_AVAILABLE = True
 except ImportError:
@@ -27,8 +27,9 @@ except ImportError:
     )
 
 try:
-    import faiss
     import pickle
+
+    import faiss
     from sentence_transformers import SentenceTransformer
 
     FAISS_AVAILABLE = True
@@ -196,8 +197,8 @@ class RAGEngine:
             return []
         _model = SentenceTransformer(EMBEDDING_MODEL_NAME)
         query_vec = _model.encode([query])
-        D, I = self._legacy_index.search(query_vec, top_k)
-        return [self._legacy_id_to_text[i] for i in I[0] if i != -1]
+        distances, indices = self._legacy_index.search(query_vec, top_k)
+        return [self._legacy_id_to_text[i] for i in indices[0] if i != -1]
 
 
 # ---------------------------------------------------------------------------

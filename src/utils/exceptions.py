@@ -1,7 +1,8 @@
 """Custom exception classes and HTTP exception helpers"""
 
-from fastapi import HTTPException, status
 from typing import Optional
+
+from fastapi import HTTPException, status
 
 
 class AutoFeatureGenieException(Exception):

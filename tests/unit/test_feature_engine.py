@@ -1,10 +1,11 @@
 """Unit tests for feature_engine module"""
 
-import pytest
-import pandas as pd
 import os
 import tempfile
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pandas as pd
+
 from backend.feature_engine import generate_eda_summary, suggest_features
 
 
