@@ -65,7 +65,7 @@ This project provides a comprehensive suite of tools for exploratory data analys
 
 2. Install dependencies:  
    ```bash
-   pip install -r requirements.txt
+   pip install -e .
    ```
 
 3. Set up environment variables:  
@@ -120,7 +120,7 @@ This project provides a comprehensive suite of tools for exploratory data analys
 │   │   └── app.js
 │   └── css/
 │       └── style.css
-├── requirements.txt
+├── pyproject.toml
 └── .env
 ```
 

@@ -1,3 +1,57 @@
+# Environments
+afenv/
 .env
-data/train.csv
-.vscode
+.venv/
+env/
+venv/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing & Linting
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDEs / Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.ipynb_checkpoints/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Data & Databases
+data/*.csv
+*.db
+*.sqlite3
+
+# Logs
+*.log
