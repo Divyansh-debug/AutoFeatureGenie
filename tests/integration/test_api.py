@@ -51,7 +51,7 @@ def test_root_endpoint(client):
     """Root endpoint returns API info or frontend HTML."""
     response = client.get("/")
     assert response.status_code == 200
-    
+
     if "text/html" in response.headers.get("content-type", ""):
         assert b"<html" in response.content.lower()
     else:
